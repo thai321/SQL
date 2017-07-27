@@ -11,7 +11,18 @@
   - LIKE
   - ILIKE
 
-Group
+- **MIN MAX AVG SUM**
+- **Group by**
+  - GROUP BY
+  - HAVING
+
+
+## Relationship example:
+
+![SQL Relationship](docs/SQLRelationship.png)
+
+---------
+
 ## Select Statement
 
 ```sql
@@ -464,4 +475,289 @@ AND replacement_cost BETWEEN 5 AND 15;
 SELECT COUNT(*)
 FROM film
 WHERE title LIKE '%Truman%';
+```
+-------
+
+
+## MIN MAX AVG SUM
+
+```sql
+SELECT ROUND(AVG(amount),5)
+FROM payment;
+```
+
+
+```sql
+SELECT MIN(amount)
+FROM payment;
+```
+
+
+```sql
+SELECT MAX(amount)
+FROM payment;
+```
+
+```sql
+SELECT SUM(amount)
+FROM payment;
+```
+
+-------
+
+## Group By
+
+- The **GROUP BY** clause divides the rows returned from the **SELECT** statement into groups.
+- For each group, you can apply an aggregate function, for example:
+  - calculating the sum of items
+  - count the number of items in the groups.
+
+```sql
+SELECT column_1, aggregate_function(column_2)
+FROM table_name
+GROUP BY column_1;
+```
+
+-----
+
+```sql
+SELECT customer_id
+FROM payment
+GROUP BY customer_id;
+```
+
+
+```sql
+SELECT COUNT(DISTINCT (customer_id))
+FROM payment;
+```
+
+------
+
+- Group by the customer_id and sum all the amount for each group
+
+```sql
+SELECT customer_id, SUM(amount)
+FROM payment
+GROUP BY customer_id;
+```
+
+- Order them in ASC ORDER
+
+```sql
+SELECT customer_id, SUM(amount)
+FROM payment
+GROUP BY customer_id
+ORDER BY customer_id;
+```
+
+- To see which customer spend the most money
+
+```sql
+SELECT customer_id, SUM(amount)
+FROM payment
+GROUP BY customer_id
+ORDER BY SUM(amount) DESC;
+```
+
+------
+
+- This
+
+```sql
+SELECT staff_id, COUNT(payment_id)
+FROM payment
+GROUP BY staff_id;
+```
+
+- Same thing as this:
+
+```sql
+SELECT staff_id, COUNT(*)
+FROM payment
+GROUP BY staff_id;
+```
+
+-----
+
+- Group by rating and count the number of ratings for each group of rating
+
+```sql
+SELECT rating, COUNT(rating)
+FROM film
+GROUP BY rating;
+
+-- Rating   count
+--   R      195
+--   G      178
+--  NC-17   223
+```
+
+----
+
+#### Some pratices
+
+- We have two staff members with Staff IDs 1 and 2. We want to give a bonus to the staff member that handled the most payments.
+- How many payments did each staff member handle? And how much was the total amount processed by each staff member
+
+```sql
+SELECT staff_id, COUNT(amount), SUM(amount)
+FROM payment
+GROUP BY staff_id;
+-- staff_id count sum
+-- 2,'7304','31059.92'
+-- 1,'7292','30252.12'
+```
+
+-------
+
+
+- Corporate headquarters is auditing our store! They want to know the average replacement cost of movies by rating.
+- For example, **R** rated movies have an average replacement cost of $20.23
+
+```sql
+SELECT rating, AVG(replacement_cost)
+FROM film
+GROUP BY rating;
+-- rating avg
+-- 'PG','18.9590721649484536'
+-- 'PG-13','20.4025560538116592'
+-- 'R','20.2310256410256410'
+-- 'NC-17','20.1376190476190476'
+-- 'G','20.1248314606741573'
+```
+
+
+-----
+
+- We want to send coupons to the 5 customers who have spent the most amount of money
+- Get me the customer ids of the top 5 spenders
+
+```sql
+SELECT customer_id, SUM(amount)
+FROM payment
+GROUP BY customer_id
+ORDER BY SUM(amount) DESC
+LIMIT 5;
+```
+
+
+### HAVING
+
+- We often use the HAVING clause in conjunction with the **GROUP BY** clause to filter group rows that do not satisfy a specified condition.
+- HAVING Syntax:
+
+```sql
+SELECT column_1, aggregate_function(column_2)
+FROM table_name
+GROUP BY column_1
+HAVING condition;
+```
+
+
+-----
+
+- The **HAVING** clause sets the condition for group rows created by the **GROUP BY** clause after the **GROUP  BY** clause applies while the **WHERE** clause sets the condition for individual rows before **GROUP BY** clause applies.
+- this is the main difference between the **HAVING** and **WHERE** clauses.
+
+
+-----
+
+```sql
+SELECT customer_id, SUM(amount)
+FROM payment
+GROUP BY customer_id
+HAVING SUM(amount) > 200;
+
+-- 526,'208.58'
+-- 148,'211.55'
+```
+
+-----
+
+```sql
+SELECT store_id, COUNT(customer_id)
+FROM customer
+GROUP BY store_id
+HAVING COUNT(customer_id) > 300;
+
+-- 1,'326'
+```
+
+
+```sql
+SELECT rating, ROUND(AVG(rental_rate), 2)
+FROM film
+WHERE rating IN ('R', 'G', 'PG')
+GROUP BY rating
+HAVING AVG(rental_rate) < 3;
+
+-- 'R','2.94'
+-- 'G','2.89'
+```
+
+
+------
+
+#### Some pratices
+
+- We want to know what customers are eligible for our platinum credit card. The requirements are that the customer has at least a total of 40 transaction payments.
+- What customers (by customer_id) are eligible for the credit card?
+
+```sql
+SELECT customer_id, COUNT(amount)
+FROM payment
+GROUP BY customer_id
+HAVING COUNT(amount) >= 40;
+```
+
+-----
+
+- When grouped by rating, what movie ratings have an average rental duration of more than 5 days?
+
+```sql
+SELECT rating, ROUND(AVG(rental_duration), 2)
+FROM film
+GROUP BY rating
+HAVING AVG(rental_duration) > 5;
+
+-- 'PG','5.08'
+-- 'PG-13','5.05'
+-- 'NC-17','5.14'
+```
+
+----
+
+- Return the customer IDs of customers who have spent at least $110 with the staff member who has an ID of 2.
+  - The answer should be customers 187 and 148.
+
+```sql
+SELECT customer_id, SUM(amount)
+from payment
+WHERE staff_id IN (2)
+GROUP BY customer_id
+HAVING SUM(amount) >= 110;
+```
+
+-----
+
+- How many films begin with the letter J?
+  - The answer should be 20.
+
+```sql
+SELECT COUNT(*)
+FROM film
+WHERE title LIKE 'J%';
+```
+
+----
+
+- What customer has the highest customer ID number whose name starts with an 'E' and has an address ID lower than 500?
+  - The answer is Eddie Tomlin
+```sql
+SELECT customer_id, first_name, last_name, address_id
+from customer
+WHERE first_name LIKE 'E%' AND address_id < 500
+ORDER BY customer_id DESC
+LIMIT 1;
 ```
